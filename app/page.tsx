@@ -132,41 +132,34 @@ export default function Home() {
         <motion.h1
           className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-center text-[#F5E6D3] flex justify-center items-center gap-1 px-4 whitespace-nowrap overflow-visible"
           variants={{
-            separate: {
+            hidden: {
               transition: {
-                staggerChildren: 0.05, // Faster stagger for "fişek" feel
+                staggerChildren: 0.04, // Staggered delay between each letter
               },
             },
-            settle: {
+            visible: {
               transition: {
-                staggerChildren: 0.05,
+                staggerChildren: 0.04,
               },
             },
           }}
-          initial="separate"
-          animate="settle"
+          initial="hidden"
+          animate="visible"
         >
-          {'Bana Kahve Ismarla ☕'.split('').map((char, index) => {
-            const isEven = index % 2 === 0
-
-            // Premium variants with "Antigravity" physics + Wavy Entrance
+          {'Bana kahve ısmarla ☕'.split('').map((char, index) => {
+            // Optimized letter animation: left entry with brake effect
             const letterVariants = {
-              separate: {
-                x: '-100vw',
-                y: isEven ? -60 : 60,
+              hidden: {
+                x: '-100vw', // Start from left outside of screen
                 opacity: 0,
-                filter: 'blur(20px)',
               },
-              settle: {
+              visible: {
                 x: 0,
-                y: 0,
                 opacity: 1,
-                filter: 'blur(0px)',
                 transition: {
-                  duration: 3.5, // 3.5s for slow, cinematic settling
-                  // "Fişek" start, "Zınk" brake: Starts very fast, spends 80% of time braking
-                  ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
-                  type: 'tween' as const,
+                  duration: 0.8,
+                  // Cubic bezier for "brake" effect: fast start, slow end
+                  ease: [0.0, 0.0, 0.2, 1] as [number, number, number, number], // Strong ease-out
                 },
               },
             }
@@ -176,7 +169,7 @@ export default function Home() {
                 key={index}
                 className="inline-block"
                 variants={letterVariants}
-                style={{ willChange: 'transform' }} // Optimize for smooth animation
+                style={{ willChange: 'transform, opacity' }}
               >
                 {char === ' ' ? '\u00A0' : char}
               </motion.span>
