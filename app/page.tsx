@@ -1,4 +1,5 @@
 'use client'
+// Trigger Vercel redeploy
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
