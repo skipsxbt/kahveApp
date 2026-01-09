@@ -31,8 +31,6 @@ export default function EyeTracker({ expression = 'neutral' }: EyeTrackerProps) 
     }, [mousePos, translateX, translateY]);
 
     // --- Animasyon Değerleri ---
-
-    // Kaş hareketleri (Yükseklik ve Açı)
     const eyebrowVariants = {
         neutral: { y: 0, rotate: 0 },
         smile: { y: -5, rotate: 5 },
@@ -41,7 +39,6 @@ export default function EyeTracker({ expression = 'neutral' }: EyeTrackerProps) 
         excited: { y: -15, rotate: [0, -5, 5, -5, 0] }
     };
 
-    // Büyütülmüş ağız yolları (Path)
     const mouthPaths = {
         neutral: "M 10 15 Q 50 15 90 15",
         smile: "M 10 15 Q 50 40 90 15",
@@ -53,34 +50,43 @@ export default function EyeTracker({ expression = 'neutral' }: EyeTrackerProps) 
     return (
         <div className="flex flex-col items-center gap-4 mb-8">
 
-            {/* Gözler ve Kaşlar Grubu */}
+            {/* Gözler ve Kaşlar */}
             <div className="flex gap-8 justify-center items-end h-24">
-                {[1, 2].map((i) => (
-                    <div key={i} className="relative flex flex-col items-center">
+                {[1, 2].map((i) => {
+                    // Kaşın dönüş açısını hesapla (i === 1 ise sol kaş için negatifi al)
+                    const rawRotate = eyebrowVariants[expression].rotate;
+                    const finalRotate = i === 1
+                        ? (Array.isArray(rawRotate) ? rawRotate.map(r => -r) : -rawRotate)
+                        : rawRotate;
 
-                        {/* Kaşlar */}
-                        <motion.div
-                            className="w-16 h-2 bg-zinc-800 rounded-full mb-3"
-                            animate={eyebrowVariants[expression]}
-                            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                            style={{
-                                transformOrigin: i === 1 ? "right center" : "left center",
-                                rotate: i === 1 ? -eyebrowVariants[expression].rotate : eyebrowVariants[expression].rotate
-                            }}
-                        />
-
-                        {/* Göz */}
-                        <div className="w-16 h-16 bg-white rounded-full border-2 border-zinc-200 flex items-center justify-center shadow-inner overflow-hidden">
+                    return (
+                        <div key={i} className="relative flex flex-col items-center">
+                            {/* Kaş */}
                             <motion.div
-                                style={{ x: translateX, y: translateY }}
-                                className="w-7 h-7 bg-zinc-900 rounded-full"
+                                className="w-16 h-2 bg-zinc-800 rounded-full mb-3"
+                                animate={{
+                                    y: eyebrowVariants[expression].y,
+                                    rotate: finalRotate
+                                }}
+                                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                style={{
+                                    transformOrigin: i === 1 ? "right center" : "left center"
+                                }}
                             />
+
+                            {/* Göz */}
+                            <div className="w-16 h-16 bg-white rounded-full border-2 border-zinc-200 flex items-center justify-center shadow-inner overflow-hidden">
+                                <motion.div
+                                    style={{ x: translateX, y: translateY }}
+                                    className="w-7 h-7 bg-zinc-900 rounded-full"
+                                />
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
-            {/* Daha Büyük Ağız */}
+            {/* Ağız */}
             <div className="h-20 flex items-center justify-center">
                 <svg width="120" height="80" viewBox="0 0 100 80">
                     <motion.path
