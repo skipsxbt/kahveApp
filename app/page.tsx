@@ -1,5 +1,6 @@
 'use client'
 import EyeTracker from './EyeTracker'
+import CoffeeParticles from './CoffeeParticles'
 // Trigger Vercel redeploy
 
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -124,6 +125,9 @@ export default function Home() {
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-8 relative z-10 overflow-visible">
+      {/* Coffee Particles Background Animation */}
+      <CoffeeParticles />
+
       {/* Connect Wallet Button */}
       <div className="absolute top-4 right-4 sm:top-8 sm:right-8 z-20">
         <ConnectButton />
