@@ -61,18 +61,28 @@ export default function EyeTracker({ expression = 'neutral' }: EyeTrackerProps) 
 
                     return (
                         <div key={i} className="relative flex flex-col items-center">
-                            {/* Kaş */}
+                            {/* Kaş (SVG ile daha oval ve gerçekçi) */}
                             <motion.div
-                                className="w-16 h-2 bg-zinc-800 rounded-full mb-3"
+                                className="mb-1"
                                 animate={{
                                     y: eyebrowVariants[expression].y,
                                     rotate: finalRotate
                                 }}
                                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
                                 style={{
-                                    transformOrigin: i === 1 ? "right center" : "left center"
+                                    transformOrigin: i === 1 ? "90% 50%" : "10% 50%" // Kaşların iç kısımlarından dönmesi için
                                 }}
-                            />
+                            >
+                                <svg width="60" height="20" viewBox="0 0 60 20">
+                                    <path
+                                        d="M 5 15 Q 30 0 55 15"
+                                        fill="transparent"
+                                        stroke="#27272a" // zinc-800
+                                        strokeWidth="5"
+                                        strokeLinecap="round"
+                                    />
+                                </svg>
+                            </motion.div>
 
                             {/* Göz */}
                             <div className="w-16 h-16 bg-white rounded-full border-2 border-zinc-200 flex items-center justify-center shadow-inner overflow-hidden">
