@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { motion, useSpring } from "framer-motion";
 
-// Geçerli ifadelerin listesi
 export type Expression = 'neutral' | 'smile' | 'big-smile' | 'laugh' | 'excited';
 
 interface EyeTrackerProps {
@@ -31,46 +30,74 @@ export default function EyeTracker({ expression = 'neutral' }: EyeTrackerProps) 
         translateY.set(y);
     }, [mousePos, translateX, translateY]);
 
-    // Ağız şekillerini tanımlıyoruz (SVG Path olarak)
+    // --- Animasyon Değerleri ---
+
+    // Kaş hareketleri (Yükseklik ve Açı)
+    const eyebrowVariants = {
+        neutral: { y: 0, rotate: 0 },
+        smile: { y: -5, rotate: 5 },
+        'big-smile': { y: -8, rotate: 10 },
+        laugh: { y: -12, rotate: 15 },
+        excited: { y: -15, rotate: [0, -5, 5, -5, 0] }
+    };
+
+    // Büyütülmüş ağız yolları (Path)
     const mouthPaths = {
-        neutral: "M 10 10 Q 30 10 50 10",
-        smile: "M 10 10 Q 30 25 50 10",
-        'big-smile': "M 5 10 Q 30 40 55 10",
-        laugh: "M 10 10 Q 30 45 50 10 L 50 15 Q 30 25 10 15 Z",
-        excited: "M 5 15 Q 30 50 55 15 L 55 10 Q 30 45 5 10 Z"
+        neutral: "M 10 15 Q 50 15 90 15",
+        smile: "M 10 15 Q 50 40 90 15",
+        'big-smile': "M 5 15 Q 50 60 95 15",
+        laugh: "M 10 15 Q 50 70 90 15 L 90 25 Q 50 40 10 25 Z",
+        excited: "M 5 20 Q 50 80 95 20 L 95 10 Q 50 70 5 10 Z"
     };
 
     return (
-        <div className="flex flex-col items-center gap-2 mb-6">
-            {/* Gözler */}
-            <div className="flex gap-4 justify-center">
+        <div className="flex flex-col items-center gap-4 mb-8">
+
+            {/* Gözler ve Kaşlar Grubu */}
+            <div className="flex gap-8 justify-center items-end h-24">
                 {[1, 2].map((i) => (
-                    <div key={i} className="w-16 h-16 bg-white rounded-full border-4 border-coffee-dark flex items-center justify-center shadow-lg relative overflow-hidden">
+                    <div key={i} className="relative flex flex-col items-center">
+
+                        {/* Kaşlar */}
                         <motion.div
-                            style={{ x: translateX, y: translateY }}
-                            className="w-7 h-7 bg-coffee-dark rounded-full relative"
-                        >
-                            {/* White reflection for cute/realism */}
-                            <div className="absolute top-1 right-1 w-2 h-2 bg-white rounded-full opacity-60" />
-                        </motion.div>
+                            className="w-16 h-2 bg-zinc-800 rounded-full mb-3"
+                            animate={eyebrowVariants[expression]}
+                            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                            style={{
+                                transformOrigin: i === 1 ? "right center" : "left center",
+                                rotate: i === 1 ? -eyebrowVariants[expression].rotate : eyebrowVariants[expression].rotate
+                            }}
+                        />
+
+                        {/* Göz */}
+                        <div className="w-16 h-16 bg-white rounded-full border-2 border-zinc-200 flex items-center justify-center shadow-inner overflow-hidden">
+                            <motion.div
+                                style={{ x: translateX, y: translateY }}
+                                className="w-7 h-7 bg-zinc-900 rounded-full"
+                            />
+                        </div>
                     </div>
                 ))}
             </div>
 
-            {/* Ağız (Yeni Eklenen Kısım) */}
-            <div className="h-10 flex items-center justify-center">
-                <svg width="60" height="40" viewBox="0 0 60 40">
+            {/* Daha Büyük Ağız */}
+            <div className="h-20 flex items-center justify-center">
+                <svg width="120" height="80" viewBox="0 0 100 80">
                     <motion.path
                         d={mouthPaths[expression]}
-                        fill={expression === 'laugh' || expression === 'excited' ? "#4A3B32" : "transparent"}
-                        stroke="#4A3B32"
+                        fill={expression === 'laugh' || expression === 'excited' ? "#333" : "transparent"}
+                        stroke="#333"
                         strokeWidth="4"
                         strokeLinecap="round"
-                        animate={expression === 'excited' ? { x: [0, -1, 1, -1, 0], y: [0, 1, -1, 1, 0] } : {}}
-                        transition={expression === 'excited' ? { repeat: Infinity, duration: 0.1 } : {}}
+                        animate={expression === 'excited' ? {
+                            scale: [1, 1.1, 1],
+                            rotate: [0, -2, 2, -2, 0]
+                        } : { scale: 1, rotate: 0 }}
+                        transition={{ type: "spring", stiffness: 200, damping: 15 }}
                     />
                 </svg>
             </div>
+
         </div>
     );
 }
