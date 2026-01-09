@@ -1,4 +1,5 @@
 'use client'
+import EyeTracker from './EyeTracker'
 // Trigger Vercel redeploy
 
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -129,6 +130,10 @@ export default function Home() {
 
       {/* Main Content */}
       <div className="flex flex-col items-center justify-center space-y-6 sm:space-y-12 max-w-2xl w-full relative z-10 overflow-visible">
+
+        {/* Eye Tracker */}
+        <EyeTracker />
+
         {/* Title */}
         <motion.h1
           className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-center text-[#F5E6D3] flex justify-center items-center gap-1 px-4 whitespace-nowrap overflow-visible"
@@ -229,4 +234,3 @@ export default function Home() {
     </main>
   )
 }
-
