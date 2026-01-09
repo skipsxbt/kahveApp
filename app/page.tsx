@@ -12,6 +12,7 @@ import { motion } from 'framer-motion'
 const RECEIVER_ADDRESS = '0x9778F9D4F521BaB5e7E5c74576d88c83cD407EFF' as `0x${string}`
 
 export default function Home() {
+  const [expression, setExpression] = useState<'neutral' | 'smile' | 'big-smile' | 'laugh' | 'excited'>('neutral')
   const [selectedAmount, setSelectedAmount] = useState<string>('')
   const [buttonText, setButtonText] = useState<string>('Bağış Yap')
   const [isSuccess, setIsSuccess] = useState<boolean>(false)
@@ -132,7 +133,7 @@ export default function Home() {
       <div className="flex flex-col items-center justify-center space-y-6 sm:space-y-12 max-w-2xl w-full relative z-10 overflow-visible">
 
         {/* Eye Tracker */}
-        <EyeTracker />
+        <EyeTracker expression={expression} />
 
         {/* Title */}
         <motion.h1
@@ -188,6 +189,12 @@ export default function Home() {
           {amounts.map((amount) => (
             <button
               key={amount.value}
+              onMouseEnter={() => {
+                if (amount.value === '0.001') setExpression('smile');
+                if (amount.value === '0.002') setExpression('big-smile');
+                if (amount.value === '0.005') setExpression('laugh');
+              }}
+              onMouseLeave={() => setExpression('neutral')}
               onClick={() => setSelectedAmount(amount.value)}
               className={`
                 px-4 py-3 sm:px-8 sm:py-4 rounded-lg font-semibold text-base sm:text-lg
@@ -215,6 +222,8 @@ export default function Home() {
 
         {/* Donate Button */}
         <button
+          onMouseEnter={() => setExpression('excited')}
+          onMouseLeave={() => setExpression('neutral')}
           onClick={isSuccess ? handleReset : handleDonate}
           disabled={!selectedAmount || (isSending || isConfirming)}
           className={`
