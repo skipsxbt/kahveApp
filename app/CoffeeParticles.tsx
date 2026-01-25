@@ -132,7 +132,7 @@ export default function CoffeeParticles() {
                 const dx = mouse.x - particle.x
                 const dy = mouse.y - particle.y
                 const distance = Math.sqrt(dx * dx + dy * dy)
-                const maxDistance = 150 // Influence radius
+                const maxDistance = 300 // Influence radius - increased for wider effect
 
                 if (distance < maxDistance) {
                     // Move particles away from mouse (repel effect) or towards mouse (attract effect)
@@ -140,19 +140,19 @@ export default function CoffeeParticles() {
                     const force = (maxDistance - distance) / maxDistance
                     const angle = Math.atan2(dy, dx)
 
-                    // Particles move towards mouse position
-                    particle.velocity.x += Math.cos(angle) * force * 0.5
-                    particle.velocity.y += Math.sin(angle) * force * 0.5
+                    // Particles move towards mouse position - slower, pudding-like viscosity
+                    particle.velocity.x += Math.cos(angle) * force * 0.15
+                    particle.velocity.y += Math.sin(angle) * force * 0.15
                 }
 
-                // Return to base position with spring effect
-                const returnForce = 0.05
+                // Return to base position with spring effect - very slow return like pudding
+                const returnForce = 0.008
                 particle.velocity.x += (particle.baseX - particle.x) * returnForce
                 particle.velocity.y += (particle.baseY - particle.y) * returnForce
 
-                // Apply friction
-                particle.velocity.x *= 0.9
-                particle.velocity.y *= 0.9
+                // Apply friction - high friction for viscous pudding-like movement
+                particle.velocity.x *= 0.92
+                particle.velocity.y *= 0.92
 
                 // Update position
                 particle.x += particle.velocity.x
