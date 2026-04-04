@@ -19,9 +19,9 @@ export default function Home() {
   const confettiTriggered = useRef<boolean>(false)
 
   const amounts = [
-    { value: '0.001', label: '0.001 ETH', emoji: '☕', desc: 'Bir yudum' },
-    { value: '0.002', label: '0.002 ETH', emoji: '☕☕', desc: 'Bir fincan' },
-    { value: '0.005', label: '0.005 ETH', emoji: '☕☕☕', desc: 'Tam kahvaltı' },
+    { value: '1', label: '1 ETH', emoji: '☕', desc: 'Bir yudum' },
+    { value: '2', label: '2 ETH', emoji: '☕☕', desc: 'Bir fincan' },
+    { value: '5', label: '5 ETH', emoji: '☕☕☕', desc: 'Tam kahvaltı' },
   ]
 
   const {
@@ -217,9 +217,9 @@ export default function Home() {
               <motion.button
                 key={amount.value}
                 onMouseEnter={() => {
-                  if (amount.value === '0.001') setExpression('smile')
-                  if (amount.value === '0.002') setExpression('big-smile')
-                  if (amount.value === '0.005') setExpression('laugh')
+                  if (amount.value === '1') setExpression('smile')
+                  if (amount.value === '2') setExpression('big-smile')
+                  if (amount.value === '5') setExpression('laugh')
                 }}
                 onMouseLeave={() => setExpression('neutral')}
                 onClick={() => setSelectedAmount(amount.value)}
