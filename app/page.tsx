@@ -247,6 +247,33 @@ export default function Home() {
             ))}
           </motion.div>
 
+          {/* Custom Amount Input */}
+          <motion.div
+            className="w-full flex justify-center mt-2 relative z-20"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.8 }}
+          >
+            <div className="relative w-full max-w-xs sm:max-w-sm">
+              <input
+                type="number"
+                step="0.001"
+                min="0"
+                placeholder="Özel miktar girin..."
+                value={selectedAmount}
+                onChange={(e) => setSelectedAmount(e.target.value)}
+                onMouseEnter={() => setExpression('smile')}
+                onMouseLeave={() => setExpression('neutral')}
+                onFocus={() => setExpression('excited')}
+                onBlur={() => setExpression('neutral')}
+                className="glass-input w-full px-6 py-4 text-center text-lg sm:text-xl font-bold placeholder:font-normal placeholder:text-sm"
+              />
+              <span className="absolute right-6 top-1/2 -translate-y-1/2 text-coffee-medium font-bold pointer-events-none">
+                ETH
+              </span>
+            </div>
+          </motion.div>
+
           {/* Selected Amount Badge */}
           <AnimatePresence>
             {selectedAmount && (
