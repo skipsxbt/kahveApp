@@ -30,13 +30,12 @@ export default function EyeTracker({ expression = 'neutral' }: EyeTrackerProps) 
         translateY.set(y);
     }, [mousePos, translateX, translateY]);
 
-    // --- Animasyon Değerleri ---
     const eyebrowVariants = {
         neutral: { y: 0, rotate: 0 },
         smile: { y: -5, rotate: 5 },
         'big-smile': { y: -8, rotate: 10 },
         laugh: { y: -12, rotate: 15 },
-        excited: { y: -15, rotate: [0, -5, 5, -5, 0] }
+        excited: { y: -15, rotate: 0 }
     };
 
     const mouthPaths = {
@@ -48,12 +47,11 @@ export default function EyeTracker({ expression = 'neutral' }: EyeTrackerProps) 
     };
 
     return (
-        <div className="flex flex-col items-center gap-4 mb-8">
+        <div className="flex flex-col items-center gap-3 mb-4">
 
-            {/* Gözler ve Kaşlar */}
+            {/* Eyes + Eyebrows */}
             <div className="flex gap-8 justify-center items-end h-24">
                 {[1, 2].map((i) => {
-                    // Kaşın dönüş açısını hesapla (i === 1 ise sol kaş için negatifi al)
                     const rawRotate = eyebrowVariants[expression].rotate;
                     const finalRotate = i === 1
                         ? (Array.isArray(rawRotate) ? rawRotate.map(r => -r) : -rawRotate)
@@ -61,7 +59,7 @@ export default function EyeTracker({ expression = 'neutral' }: EyeTrackerProps) 
 
                     return (
                         <div key={i} className="relative flex flex-col items-center">
-                            {/* Kaş (SVG ile daha oval ve gerçekçi) */}
+                            {/* Eyebrow */}
                             <motion.div
                                 className="mb-1"
                                 animate={{
@@ -70,44 +68,73 @@ export default function EyeTracker({ expression = 'neutral' }: EyeTrackerProps) 
                                 }}
                                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
                                 style={{
-                                    transformOrigin: i === 1 ? "90% 50%" : "10% 50%" // Kaşların iç kısımlarından dönmesi için
+                                    transformOrigin: i === 1 ? "90% 50%" : "10% 50%"
                                 }}
                             >
                                 <svg width="60" height="20" viewBox="0 0 60 20">
                                     <path
                                         d="M 5 15 Q 30 0 55 15"
                                         fill="transparent"
-                                        stroke="#27272a" // zinc-800
-                                        strokeWidth="5"
+                                        stroke="#5C3D2E"
+                                        strokeWidth="4.5"
                                         strokeLinecap="round"
                                     />
                                 </svg>
                             </motion.div>
 
-                            {/* Göz */}
-                            <div className="w-16 h-16 bg-white rounded-full border-2 border-zinc-200 flex items-center justify-center shadow-inner overflow-hidden">
+                            {/* Eye */}
+                            <div
+                                className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden"
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.7)',
+                                    backdropFilter: 'blur(8px)',
+                                    border: '1.5px solid rgba(210, 180, 140, 0.4)',
+                                    boxShadow: '0 4px 16px rgba(92, 61, 46, 0.08), inset 0 2px 4px rgba(92, 61, 46, 0.06)',
+                                }}
+                            >
                                 <motion.div
                                     style={{ x: translateX, y: translateY }}
-                                    className="w-7 h-7 bg-zinc-900 rounded-full"
-                                />
+                                    className="w-7 h-7 rounded-full"
+                                // Dark coffee pupil with inner highlight
+                                // using inline style for gradient
+                                >
+                                    <div
+                                        className="w-full h-full rounded-full relative"
+                                        style={{
+                                            background: 'radial-gradient(circle at 35% 35%, #8B6F47, #3D2817)',
+                                        }}
+                                    >
+                                        {/* Pupil highlight */}
+                                        <div
+                                            className="absolute rounded-full"
+                                            style={{
+                                                width: '6px',
+                                                height: '6px',
+                                                top: '4px',
+                                                left: '5px',
+                                                background: 'rgba(255,255,255,0.6)',
+                                            }}
+                                        />
+                                    </div>
+                                </motion.div>
                             </div>
                         </div>
                     );
                 })}
             </div>
 
-            {/* Ağız */}
-            <div className="h-20 flex items-center justify-center">
-                <svg width="120" height="80" viewBox="0 0 100 80">
+            {/* Mouth */}
+            <div className="h-16 flex items-center justify-center">
+                <svg width="100" height="60" viewBox="0 0 100 80">
                     <motion.path
                         d={mouthPaths[expression]}
-                        fill={expression === 'laugh' || expression === 'excited' ? "#333" : "transparent"}
-                        stroke="#333"
-                        strokeWidth="4"
+                        fill={expression === 'laugh' || expression === 'excited' ? "#5C3D2E" : "transparent"}
+                        stroke="#5C3D2E"
+                        strokeWidth="3.5"
                         strokeLinecap="round"
                         animate={expression === 'excited' ? {
-                            scale: [1, 1.1, 1],
-                            rotate: [0, -2, 2, -2, 0]
+                            scale: 1.1,
+                            rotate: 0
                         } : { scale: 1, rotate: 0 }}
                         transition={{ type: "spring", stiffness: 200, damping: 15 }}
                     />
