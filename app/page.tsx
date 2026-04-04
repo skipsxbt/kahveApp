@@ -115,6 +115,16 @@ export default function Home() {
     confettiTriggered.current = false
   }
 
+  const adjustAmount = (delta: number) => {
+    const current = parseFloat(selectedAmount) || 0;
+    const nextAmount = Math.max(0, current + delta);
+    if (nextAmount === 0) {
+      setSelectedAmount('');
+    } else {
+      setSelectedAmount(parseFloat(nextAmount.toFixed(3)).toString());
+    }
+  }
+
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-8 relative z-10 overflow-visible">
       {/* Coffee Particles Background Animation */}
@@ -254,23 +264,41 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.8 }}
           >
-            <div className="relative w-full max-w-xs sm:max-w-sm">
-              <input
-                type="number"
-                step="0.001"
-                min="0"
-                placeholder="Özel miktar girin..."
-                value={selectedAmount}
-                onChange={(e) => setSelectedAmount(e.target.value)}
+            <div className="relative flex items-center justify-center gap-3 w-full max-w-xs sm:max-w-md">
+              <button
+                onClick={() => adjustAmount(-1)}
                 onMouseEnter={() => setExpression('smile')}
                 onMouseLeave={() => setExpression('neutral')}
-                onFocus={() => setExpression('excited')}
-                onBlur={() => setExpression('neutral')}
-                className="glass-input w-full px-6 py-4 text-center text-lg sm:text-xl font-bold placeholder:font-normal placeholder:text-sm"
-              />
-              <span className="absolute right-6 top-1/2 -translate-y-1/2 text-coffee-medium font-bold pointer-events-none">
-                ETH
-              </span>
+                className="w-12 h-12 shrink-0 flex items-center justify-center rounded-2xl glass-card text-2xl text-coffee-dark font-bold hover:bg-white/50 active:scale-95 transition-all focus:outline-none"
+              >
+                -
+              </button>
+              <div className="relative flex-1">
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  placeholder="Özel miktar..."
+                  value={selectedAmount}
+                  onChange={(e) => setSelectedAmount(e.target.value)}
+                  onMouseEnter={() => setExpression('smile')}
+                  onMouseLeave={() => setExpression('neutral')}
+                  onFocus={() => setExpression('excited')}
+                  onBlur={() => setExpression('neutral')}
+                  className="glass-input no-spinners w-full px-4 py-4 text-center text-lg sm:text-xl font-bold placeholder:font-normal placeholder:text-sm"
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-coffee-medium font-bold pointer-events-none">
+                  ETH
+                </span>
+              </div>
+              <button
+                onClick={() => adjustAmount(1)}
+                onMouseEnter={() => setExpression('smile')}
+                onMouseLeave={() => setExpression('neutral')}
+                className="w-12 h-12 shrink-0 flex items-center justify-center rounded-2xl glass-card text-2xl text-coffee-dark font-bold hover:bg-white/50 active:scale-95 transition-all focus:outline-none"
+              >
+                +
+              </button>
             </div>
           </motion.div>
 
