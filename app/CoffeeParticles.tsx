@@ -2,10 +2,9 @@
 
 import { useEffect, useRef } from 'react'
 
-// ─── Simplex Noise (compact implementation) ───────────────────────────
+// ─── Simplex Noise ────────────────────────────────────────────────────
 class SimplexNoise {
     private grad3: number[][]
-    private p: number[]
     private perm: number[]
 
     constructor(seed = Math.random()) {
@@ -14,20 +13,16 @@ class SimplexNoise {
             [1, 0, 1], [-1, 0, 1], [1, 0, -1], [-1, 0, -1],
             [0, 1, 1], [0, -1, 1], [0, 1, -1], [0, -1, -1],
         ]
-        // Initialize with sequential values 0-255
-        this.p = []
-        for (let i = 0; i < 256; i++) this.p[i] = i
-        // Seeded Fisher-Yates shuffle
+        const p: number[] = []
+        for (let i = 0; i < 256; i++) p[i] = i
         let s = seed * 2147483647
         for (let i = 255; i > 0; i--) {
             s = (s * 16807) % 2147483647
             const j = Math.floor((s / 2147483647) * (i + 1))
-            const tmp = this.p[i]
-            this.p[i] = this.p[j]
-            this.p[j] = tmp
+            const tmp = p[i]; p[i] = p[j]; p[j] = tmp
         }
         this.perm = new Array(512)
-        for (let i = 0; i < 512; i++) this.perm[i] = this.p[i & 255]
+        for (let i = 0; i < 512; i++) this.perm[i] = p[i & 255]
     }
 
     private dot(g: number[], x: number, y: number): number {
@@ -41,26 +36,14 @@ class SimplexNoise {
         const i = Math.floor(xin + s)
         const j = Math.floor(yin + s)
         const t = (i + j) * G2
-        const X0 = i - t
-        const Y0 = j - t
-        const x0 = xin - X0
-        const y0 = yin - Y0
-
-        let i1: number, j1: number
-        if (x0 > y0) { i1 = 1; j1 = 0 }
-        else { i1 = 0; j1 = 1 }
-
-        const x1 = x0 - i1 + G2
-        const y1 = y0 - j1 + G2
-        const x2 = x0 - 1 + 2 * G2
-        const y2 = y0 - 1 + 2 * G2
-
-        const ii = i & 255
-        const jj = j & 255
+        const x0 = xin - (i - t), y0 = yin - (j - t)
+        const i1 = x0 > y0 ? 1 : 0, j1 = x0 > y0 ? 0 : 1
+        const x1 = x0 - i1 + G2, y1 = y0 - j1 + G2
+        const x2 = x0 - 1 + 2 * G2, y2 = y0 - 1 + 2 * G2
+        const ii = i & 255, jj = j & 255
         const gi0 = this.perm[ii + this.perm[jj]] % 12
         const gi1 = this.perm[ii + i1 + this.perm[jj + j1]] % 12
         const gi2 = this.perm[ii + 1 + this.perm[jj + 1]] % 12
-
         let n0 = 0, n1 = 0, n2 = 0
         let t0 = 0.5 - x0 * x0 - y0 * y0
         if (t0 >= 0) { t0 *= t0; n0 = t0 * t0 * this.dot(this.grad3[gi0], x0, y0) }
@@ -68,83 +51,79 @@ class SimplexNoise {
         if (t1 >= 0) { t1 *= t1; n1 = t1 * t1 * this.dot(this.grad3[gi1], x1, y1) }
         let t2 = 0.5 - x2 * x2 - y2 * y2
         if (t2 >= 0) { t2 *= t2; n2 = t2 * t2 * this.dot(this.grad3[gi2], x2, y2) }
-
         return 70 * (n0 + n1 + n2)
     }
 }
 
-// ─── Types ────────────────────────────────────────────────────────────
-interface Particle {
+// ─── Bubble particle type ─────────────────────────────────────────────
+interface Bubble {
     x: number
     y: number
     vx: number
     vy: number
-    size: number          // capsule length
-    width: number         // capsule thickness
+    radius: number
     color: string
+    highlightColor: string
     glowColor: string
     opacity: number
     baseOpacity: number
-    layer: number         // 0 = back, 1 = mid, 2 = front
+    layer: number
     speed: number
     noiseOffsetX: number
     noiseOffsetY: number
-    life: number
-    maxLife: number
+    phase: number       // for wobble/pulse animation
+    phaseSpeed: number
 }
 
-// ─── Premium coffee palette with warm luminous tones ──────────────────
-const LAYER_COLORS = [
-    // Back layer — subtle, muted
+// ─── Coffee bubble colors ─────────────────────────────────────────────
+const BUBBLE_COLORS = [
+    // Back layer — soft, transparent
     [
-        { color: '#C4A882', glow: 'rgba(196, 168, 130, 0.4)' },
-        { color: '#D2B48C', glow: 'rgba(210, 180, 140, 0.35)' },
-        { color: '#BFA67A', glow: 'rgba(191, 166, 122, 0.3)' },
+        { fill: '#C4A882', highlight: '#E8D5B8', glow: 'rgba(196, 168, 130, 0.3)' },
+        { fill: '#D2B48C', highlight: '#F0E0C8', glow: 'rgba(210, 180, 140, 0.25)' },
+        { fill: '#BFA67A', highlight: '#E0CDA8', glow: 'rgba(191, 166, 122, 0.25)' },
     ],
-    // Mid layer — richer
+    // Mid layer — warm coffee tones
     [
-        { color: '#A0826D', glow: 'rgba(160, 130, 109, 0.5)' },
-        { color: '#B8956A', glow: 'rgba(184, 149, 106, 0.5)' },
-        { color: '#9E7B5B', glow: 'rgba(158, 123, 91, 0.45)' },
-        { color: '#C49A6C', glow: 'rgba(196, 154, 108, 0.5)' },
+        { fill: '#A0826D', highlight: '#D4B8A0', glow: 'rgba(160, 130, 109, 0.4)' },
+        { fill: '#B8956A', highlight: '#E0C8A0', glow: 'rgba(184, 149, 106, 0.4)' },
+        { fill: '#9E7B5B', highlight: '#D0AE88', glow: 'rgba(158, 123, 91, 0.35)' },
+        { fill: '#C49A6C', highlight: '#E8C89C', glow: 'rgba(196, 154, 108, 0.4)' },
     ],
-    // Front layer — vibrant accents
+    // Front layer — rich, vibrant
     [
-        { color: '#8B6F47', glow: 'rgba(139, 111, 71, 0.6)' },
-        { color: '#7A5C3E', glow: 'rgba(122, 92, 62, 0.55)' },
-        { color: '#D4A574', glow: 'rgba(212, 165, 116, 0.6)' },
-        { color: '#E8C9A0', glow: 'rgba(232, 201, 160, 0.5)' },
+        { fill: '#8B6F47', highlight: '#C8A878', glow: 'rgba(139, 111, 71, 0.5)' },
+        { fill: '#7A5C3E', highlight: '#B8946C', glow: 'rgba(122, 92, 62, 0.45)' },
+        { fill: '#D4A574', highlight: '#F0D0A8', glow: 'rgba(212, 165, 116, 0.5)' },
+        { fill: '#E8C9A0', highlight: '#FFF0DC', glow: 'rgba(232, 201, 160, 0.4)' },
     ],
 ]
 
-// ─── Layer configs for parallax depth ─────────────────────────────────
+// ─── Layer config ─────────────────────────────────────────────────────
 const LAYER_CONFIG = [
-    { speedMul: 0.35, sizeMul: 0.7, widthMul: 0.5, opacityRange: [0.2, 0.45], count: 0.3 },
-    { speedMul: 0.65, sizeMul: 1.1, widthMul: 0.8, opacityRange: [0.35, 0.65], count: 0.4 },
-    { speedMul: 1.0, sizeMul: 1.5, widthMul: 1.0, opacityRange: [0.5, 0.85], count: 0.3 },
+    { speedMul: 0.3, radiusRange: [3, 8],   opacityRange: [0.12, 0.3],  count: 0.35 },
+    { speedMul: 0.6, radiusRange: [5, 14],  opacityRange: [0.2, 0.45],  count: 0.4  },
+    { speedMul: 1.0, radiusRange: [8, 22],  opacityRange: [0.3, 0.6],   count: 0.25 },
 ]
 
 export default function CoffeeParticles() {
     const canvasRef = useRef<HTMLCanvasElement>(null)
-    const particlesRef = useRef<Particle[]>([])
+    const bubblesRef = useRef<Bubble[]>([])
     const mouseRef = useRef({ x: -9999, y: -9999, active: false })
     const animationRef = useRef<number>(0)
     const timeRef = useRef(0)
     const noiseRef = useRef<SimplexNoise>(new SimplexNoise(42))
-    const dprRef = useRef(1)
 
     useEffect(() => {
         const canvas = canvasRef.current
         if (!canvas) return
-
         const ctx = canvas.getContext('2d', { alpha: true })
         if (!ctx) return
 
         const noise = noiseRef.current
         const dpr = Math.min(window.devicePixelRatio || 1, 2)
-        dprRef.current = dpr
 
-        // ─── Resize ──────────────────────────────────────────────
+        // ─── Resize ────────────────────────────────────────────
         const resizeCanvas = () => {
             const w = window.innerWidth
             const h = window.innerHeight
@@ -153,249 +132,230 @@ export default function CoffeeParticles() {
             canvas.style.width = w + 'px'
             canvas.style.height = h + 'px'
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-            initParticles(w, h)
+            initBubbles(w, h)
         }
 
-        // ─── Create particles ────────────────────────────────────
-        const initParticles = (w: number, h: number) => {
+        // ─── Create bubbles ──────────────────────────────────
+        const initBubbles = (w: number, h: number) => {
             const area = w * h
-            const baseCount = Math.floor(area / 3200)
-            const totalCount = Math.min(baseCount, 800)
-            const particles: Particle[] = []
+            const baseCount = Math.floor(area / 5000)
+            const totalCount = Math.min(baseCount, 500)
+            const bubbles: Bubble[] = []
 
             for (let layer = 0; layer < 3; layer++) {
                 const cfg = LAYER_CONFIG[layer]
-                const colors = LAYER_COLORS[layer]
+                const colors = BUBBLE_COLORS[layer]
                 const count = Math.floor(totalCount * cfg.count)
 
                 for (let i = 0; i < count; i++) {
                     const colorData = colors[Math.floor(Math.random() * colors.length)]
                     const opacity = cfg.opacityRange[0] + Math.random() * (cfg.opacityRange[1] - cfg.opacityRange[0])
-                    const maxLife = 600 + Math.random() * 1000
+                    const radius = cfg.radiusRange[0] + Math.random() * (cfg.radiusRange[1] - cfg.radiusRange[0])
 
-                    particles.push({
+                    bubbles.push({
                         x: Math.random() * w,
                         y: Math.random() * h,
-                        vx: (Math.random() - 0.5) * 0.8,
-                        vy: (Math.random() - 0.5) * 0.8,
-                        size: (5 + Math.random() * 10) * cfg.sizeMul,
-                        width: (1.8 + Math.random() * 2.5) * cfg.widthMul,
-                        color: colorData.color,
+                        vx: (Math.random() - 0.5) * 0.4,
+                        vy: (Math.random() - 0.5) * 0.4,
+                        radius,
+                        color: colorData.fill,
+                        highlightColor: colorData.highlight,
                         glowColor: colorData.glow,
                         opacity,
                         baseOpacity: opacity,
                         layer,
-                        speed: (0.3 + Math.random() * 0.7) * cfg.speedMul,
+                        speed: (0.2 + Math.random() * 0.6) * cfg.speedMul,
                         noiseOffsetX: Math.random() * 1000,
                         noiseOffsetY: Math.random() * 1000,
-                        life: Math.random() * maxLife,
-                        maxLife,
+                        phase: Math.random() * Math.PI * 2,
+                        phaseSpeed: 0.005 + Math.random() * 0.015,
                     })
                 }
             }
-            particlesRef.current = particles
+            bubblesRef.current = bubbles
         }
 
-        // ─── Draw a velocity-aligned capsule/pill ────────────────
-        const drawCapsule = (
-            ctx: CanvasRenderingContext2D,
-            x: number, y: number,
-            vx: number, vy: number,
-            length: number, width: number,
-            color: string, glowColor: string,
-            opacity: number, layer: number
-        ) => {
-            const speed = Math.sqrt(vx * vx + vy * vy)
-            const angle = Math.atan2(vy, vx)
-
-            // Dynamic length based on velocity
-            const dynamicLength = length * (0.6 + Math.min(speed * 1.5, 1.5))
-            const halfLen = dynamicLength / 2
-            const radius = width / 2
-
-            ctx.save()
-            ctx.globalAlpha = opacity
-            ctx.translate(x, y)
-            ctx.rotate(angle)
-
-            // Glow effect on all layers with increasing intensity
-            ctx.shadowColor = glowColor
-            ctx.shadowBlur = layer === 0 ? 4 : layer === 1 ? 10 : 18
-
-            // Draw capsule shape
-            ctx.beginPath()
-            ctx.moveTo(-halfLen, -radius)
-            ctx.lineTo(halfLen, -radius)
-            ctx.arc(halfLen, 0, radius, -Math.PI / 2, Math.PI / 2)
-            ctx.lineTo(-halfLen, radius)
-            ctx.arc(-halfLen, 0, radius, Math.PI / 2, -Math.PI / 2)
-            ctx.closePath()
-
-            // Gradient fill along the capsule
-            const grad = ctx.createLinearGradient(-halfLen, 0, halfLen, 0)
-            grad.addColorStop(0, adjustAlpha(color, 0.6))
-            grad.addColorStop(0.4, color)
-            grad.addColorStop(1, adjustAlpha(color, 0.8))
-            ctx.fillStyle = grad
-            ctx.fill()
-
-            // Inner highlight for depth
-            ctx.beginPath()
-            ctx.ellipse(0, -radius * 0.3, halfLen * 0.6, radius * 0.4, 0, 0, Math.PI * 2)
-            ctx.fillStyle = `rgba(255, 255, 255, ${0.15 + layer * 0.08})`
-            ctx.fill()
-
-            ctx.restore()
-        }
-
-        // ─── Helper: adjust alpha of a hex color ─────────────────
-        const adjustAlpha = (hex: string, alpha: number): string => {
+        // ─── Helper: hex → rgba ──────────────────────────────
+        const hexToRgba = (hex: string, alpha: number): string => {
             const r = parseInt(hex.slice(1, 3), 16)
             const g = parseInt(hex.slice(3, 5), 16)
             const b = parseInt(hex.slice(5, 7), 16)
             return `rgba(${r}, ${g}, ${b}, ${alpha})`
         }
 
-        // ─── Draw connections between nearby front-layer particles ─
-        const drawConnections = (ctx: CanvasRenderingContext2D, particles: Particle[]) => {
-            const frontParticles = particles.filter(p => p.layer === 2)
-            const maxDist = 120
+        // ─── Draw a coffee bubble ────────────────────────────
+        const drawBubble = (
+            ctx: CanvasRenderingContext2D,
+            b: Bubble,
+            time: number
+        ) => {
+            const wobble = Math.sin(b.phase) * 0.08
+            const r = b.radius * (1 + wobble)
 
-            for (let i = 0; i < frontParticles.length; i++) {
-                for (let j = i + 1; j < frontParticles.length; j++) {
-                    const a = frontParticles[i]
-                    const b = frontParticles[j]
-                    const dx = a.x - b.x
-                    const dy = a.y - b.y
-                    const dist = Math.sqrt(dx * dx + dy * dy)
+            ctx.save()
+            ctx.globalAlpha = b.opacity
 
-                    if (dist < maxDist) {
-                        const alpha = (1 - dist / maxDist) * 0.08 * Math.min(a.opacity, b.opacity)
-                        ctx.beginPath()
-                        ctx.moveTo(a.x, a.y)
-                        ctx.lineTo(b.x, b.y)
-                        ctx.strokeStyle = `rgba(139, 111, 71, ${alpha})`
-                        ctx.lineWidth = 0.5
-                        ctx.stroke()
-                    }
-                }
+            // Outer glow
+            ctx.shadowColor = b.glowColor
+            ctx.shadowBlur = b.layer === 0 ? 6 : b.layer === 1 ? 12 : 20
+
+            // Main bubble body — radial gradient for 3D sphere look
+            const bodyGrad = ctx.createRadialGradient(
+                b.x - r * 0.3, b.y - r * 0.3, r * 0.1,
+                b.x, b.y, r
+            )
+            bodyGrad.addColorStop(0, hexToRgba(b.highlightColor, 0.9))
+            bodyGrad.addColorStop(0.4, hexToRgba(b.color, 0.7))
+            bodyGrad.addColorStop(0.8, hexToRgba(b.color, 0.4))
+            bodyGrad.addColorStop(1, hexToRgba(b.color, 0.1))
+
+            ctx.beginPath()
+            ctx.arc(b.x, b.y, r, 0, Math.PI * 2)
+            ctx.fillStyle = bodyGrad
+            ctx.fill()
+
+            // Subtle border ring for bubble edge
+            ctx.beginPath()
+            ctx.arc(b.x, b.y, r, 0, Math.PI * 2)
+            ctx.strokeStyle = hexToRgba(b.color, 0.2 + b.layer * 0.05)
+            ctx.lineWidth = 0.5 + b.layer * 0.3
+            ctx.stroke()
+
+            // Reset shadow for inner details
+            ctx.shadowBlur = 0
+
+            // Specular highlight — top-left crescent
+            const hlX = b.x - r * 0.3
+            const hlY = b.y - r * 0.35
+            const hlR = r * 0.45
+            const hlGrad = ctx.createRadialGradient(
+                hlX, hlY, hlR * 0.05,
+                hlX, hlY, hlR
+            )
+            hlGrad.addColorStop(0, `rgba(255, 255, 255, ${0.5 + b.layer * 0.1})`)
+            hlGrad.addColorStop(0.5, `rgba(255, 255, 255, ${0.15 + b.layer * 0.05})`)
+            hlGrad.addColorStop(1, 'rgba(255, 255, 255, 0)')
+
+            ctx.beginPath()
+            ctx.arc(hlX, hlY, hlR, 0, Math.PI * 2)
+            ctx.fillStyle = hlGrad
+            ctx.fill()
+
+            // Secondary small highlight — bottom-right shine
+            if (b.layer >= 1 && r > 6) {
+                const h2X = b.x + r * 0.25
+                const h2Y = b.y + r * 0.3
+                const h2R = r * 0.15
+                ctx.beginPath()
+                ctx.arc(h2X, h2Y, h2R, 0, Math.PI * 2)
+                ctx.fillStyle = `rgba(255, 255, 255, ${0.15 + b.layer * 0.05})`
+                ctx.fill()
             }
+
+            ctx.restore()
         }
 
-        // ─── Main animation loop ─────────────────────────────────
+        // ─── Main animation loop ─────────────────────────────
         const animate = () => {
             const w = window.innerWidth
             const h = window.innerHeight
-            timeRef.current += 0.003
+            timeRef.current += 0.004
 
             ctx.clearRect(0, 0, w, h)
 
             const mouse = mouseRef.current
-            const particles = particlesRef.current
+            const bubbles = bubblesRef.current
             const time = timeRef.current
 
-            // Sort by layer so back renders first
-            particles.sort((a, b) => a.layer - b.layer)
+            // Sort by layer (back first)
+            bubbles.sort((a, b) => a.layer - b.layer)
 
-            // Draw connections first (behind particles)
-            drawConnections(ctx, particles)
-
-            for (const p of particles) {
-                // ─── Flow field from noise ──────────────────────
-                const noiseScale = 0.0015
+            for (const b of bubbles) {
+                // ─── Flow field from noise ─────────────────
+                const noiseScale = 0.0012
                 const noiseVal = noise.noise2D(
-                    p.x * noiseScale + p.noiseOffsetX + time * 0.5,
-                    p.y * noiseScale + p.noiseOffsetY + time * 0.3
+                    b.x * noiseScale + b.noiseOffsetX + time * 0.4,
+                    b.y * noiseScale + b.noiseOffsetY + time * 0.25
                 )
                 const flowAngle = noiseVal * Math.PI * 2
 
-                // Secondary noise for turbulence
                 const turbulence = noise.noise2D(
-                    p.x * noiseScale * 2 + time * 0.8 + 100,
-                    p.y * noiseScale * 2 + time * 0.6 + 100
-                ) * 0.3
+                    b.x * noiseScale * 2.5 + time * 0.6 + 100,
+                    b.y * noiseScale * 2.5 + time * 0.4 + 100
+                ) * 0.25
 
-                const flowForce = p.speed * 0.8
-                p.vx += Math.cos(flowAngle + turbulence) * flowForce * 0.08
-                p.vy += Math.sin(flowAngle + turbulence) * flowForce * 0.08
+                const flowForce = b.speed * 0.6
+                b.vx += Math.cos(flowAngle + turbulence) * flowForce * 0.06
+                b.vy += Math.sin(flowAngle + turbulence) * flowForce * 0.06
 
-                // ─── Mouse interaction: orbit/attract ───────────
+                // Slight upward float (like real bubbles)
+                b.vy -= 0.003 * b.speed
+
+                // ─── Mouse interaction ────────────────────
                 if (mouse.active) {
-                    const dx = mouse.x - p.x
-                    const dy = mouse.y - p.y
+                    const dx = mouse.x - b.x
+                    const dy = mouse.y - b.y
                     const dist = Math.sqrt(dx * dx + dy * dy)
-                    const influenceRadius = 200 + p.layer * 50
+                    const influenceRadius = 180 + b.layer * 40
 
                     if (dist < influenceRadius && dist > 1) {
-                        const force = (1 - dist / influenceRadius) * 0.04 * (p.layer + 1)
-                        const toMouseAngle = Math.atan2(dy, dx)
+                        const force = (1 - dist / influenceRadius) * 0.03 * (b.layer + 1)
 
-                        // Orbit effect: perpendicular force + slight attraction
-                        const orbitAngle = toMouseAngle + Math.PI * 0.5
-                        p.vx += Math.cos(orbitAngle) * force * 2.0
-                        p.vy += Math.sin(orbitAngle) * force * 2.0
+                        // Push bubbles away from mouse (like disrupting liquid)
+                        b.vx -= (dx / dist) * force * 1.5
+                        b.vy -= (dy / dist) * force * 1.5
 
-                        // Gentle attraction
-                        p.vx += dx / dist * force * 0.5
-                        p.vy += dy / dist * force * 0.5
+                        // Slight tangential swirl
+                        const swirl = force * 0.8
+                        b.vx += (-dy / dist) * swirl
+                        b.vy += (dx / dist) * swirl
 
-                        // Boost opacity near mouse
-                        p.opacity = Math.min(p.baseOpacity * 1.5, p.opacity + 0.01)
+                        // Brighten near mouse
+                        b.opacity = Math.min(b.baseOpacity * 1.6, b.opacity + 0.015)
                     }
                 }
 
-                // ─── Damping ───────────────────────────────────
-                const damping = 0.96
-                p.vx *= damping
-                p.vy *= damping
+                // ─── Damping ─────────────────────────────
+                b.vx *= 0.97
+                b.vy *= 0.97
 
-                // ─── Speed limit ──────────────────────────────
-                const maxSpeed = 2.5 * p.speed
-                const currentSpeed = Math.sqrt(p.vx * p.vx + p.vy * p.vy)
+                // ─── Speed limit ─────────────────────────
+                const maxSpeed = 2.0 * b.speed
+                const currentSpeed = Math.sqrt(b.vx * b.vx + b.vy * b.vy)
                 if (currentSpeed > maxSpeed) {
-                    p.vx = (p.vx / currentSpeed) * maxSpeed
-                    p.vy = (p.vy / currentSpeed) * maxSpeed
+                    b.vx = (b.vx / currentSpeed) * maxSpeed
+                    b.vy = (b.vy / currentSpeed) * maxSpeed
                 }
 
-                // ─── Update position ─────────────────────────
-                p.x += p.vx
-                p.y += p.vy
+                // ─── Update position ─────────────────────
+                b.x += b.vx
+                b.y += b.vy
 
-                // ─── Wrap around edges with margin ───────────
-                const margin = 50
-                if (p.x < -margin) p.x = w + margin
-                if (p.x > w + margin) p.x = -margin
-                if (p.y < -margin) p.y = h + margin
-                if (p.y > h + margin) p.y = -margin
+                // ─── Wrap around edges ───────────────────
+                const margin = b.radius + 20
+                if (b.x < -margin) b.x = w + margin
+                if (b.x > w + margin) b.x = -margin
+                if (b.y < -margin) b.y = h + margin
+                if (b.y > h + margin) b.y = -margin
 
-                // ─── Life cycle for subtle pulsing ──────────
-                p.life += 1
-                if (p.life > p.maxLife) p.life = 0
+                // ─── Wobble / pulse phase ────────────────
+                b.phase += b.phaseSpeed
 
-                const lifeFraction = p.life / p.maxLife
-                const pulse = 0.8 + 0.2 * Math.sin(lifeFraction * Math.PI * 2)
+                // ─── Fade opacity back to base ──────────
+                const pulse = 0.85 + 0.15 * Math.sin(b.phase * 2)
+                b.opacity += (b.baseOpacity * pulse - b.opacity) * 0.025
 
-                // ─── Fade opacity back to base ──────────────
-                p.opacity += (p.baseOpacity * pulse - p.opacity) * 0.02
-
-                // ─── Draw particle ──────────────────────────
-                drawCapsule(
-                    ctx, p.x, p.y,
-                    p.vx, p.vy,
-                    p.size, p.width,
-                    p.color, p.glowColor,
-                    p.opacity, p.layer
-                )
+                // ─── Draw ────────────────────────────────
+                drawBubble(ctx, b, time)
             }
 
             animationRef.current = requestAnimationFrame(animate)
         }
 
-        // ─── Event handlers ──────────────────────────────────────
+        // ─── Events ──────────────────────────────────────────
         const handleMouseMove = (e: MouseEvent) => {
             mouseRef.current = { x: e.clientX, y: e.clientY, active: true }
         }
-
         const handleTouchMove = (e: TouchEvent) => {
             if (e.touches.length > 0) {
                 mouseRef.current = {
@@ -405,12 +365,10 @@ export default function CoffeeParticles() {
                 }
             }
         }
-
         const handleMouseLeave = () => {
             mouseRef.current = { x: -9999, y: -9999, active: false }
         }
 
-        // ─── Init ────────────────────────────────────────────────
         resizeCanvas()
         window.addEventListener('resize', resizeCanvas)
         window.addEventListener('mousemove', handleMouseMove)
@@ -423,9 +381,7 @@ export default function CoffeeParticles() {
             window.removeEventListener('mousemove', handleMouseMove)
             window.removeEventListener('touchmove', handleTouchMove)
             window.removeEventListener('mouseleave', handleMouseLeave)
-            if (animationRef.current) {
-                cancelAnimationFrame(animationRef.current)
-            }
+            if (animationRef.current) cancelAnimationFrame(animationRef.current)
         }
     }, [])
 
@@ -433,7 +389,7 @@ export default function CoffeeParticles() {
         <canvas
             ref={canvasRef}
             className="fixed inset-0 pointer-events-none z-0"
-            style={{ opacity: 0.85 }}
+            style={{ opacity: 0.9 }}
         />
     )
 }
